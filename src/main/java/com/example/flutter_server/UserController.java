@@ -7,15 +7,27 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.PostMapping;   // import 추가
 import org.springframework.web.bind.annotation.RequestParam;  // import 추가
 
+import java.util.HashMap;
+import java.util.Map;
+
 @Controller       // Controller로 사용되게 해주는 Annotation
 @ResponseBody     // HTML 문서가 아니라 일반 문자열을 반환하게 해 주는 Annotation
 public class UserController {
-    @PostMapping("/login-check")         // 추가된 메소드
-    public String loginCheck(@RequestParam("userId") String userId, @RequestParam("password") String password) {
-        if ( userId.equals("test") && password.equals("test") )
-            return "true";
-        else
-            return "false";
+//    @PostMapping("/login-check")         // 추가된 메소드
+//    public String loginCheck(@RequestParam("userId") String userId, @RequestParam("password") String password) {
+//        if ( userId.equals("test") && password.equals("test") )
+//            return "true";
+//        else
+//            return "false";
+//    }
+    @PostMapping("/login-check")    // Map 즉 딕셔너리 즉 json으로 반환하는 함수 추가
+    public Map<String, Boolean> loginCheck(@RequestParam("userId") String userId, @RequestParam("password") String password) {
+        boolean loginSuccess = userId.equals("test") && password.equals("test");
+
+        Map<String, Boolean> response = new HashMap<>();
+        response.put("loginSuccess", loginSuccess);
+
+        return response;
     }
 
     @GetMapping("/users")    // http://localhost:8087/users가 접속 Url
