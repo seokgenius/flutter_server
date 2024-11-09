@@ -1,28 +1,88 @@
+// UserController 클래스에 DBConnection을 주입(Autowired)하여
+// flutter_user DB 테이블에 사용자를 추가하는 로직 추가
 package com.example.flutter_server;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import org.springframework.web.bind.annotation.PostMapping;   // import 추가
-import org.springframework.web.bind.annotation.RequestParam;  // import 추가
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.HashMap;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Autowired;  // 의존성 주입을 위하여 import
+import java.sql.Connection;                                     // DB 연결을 위하여 Import
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+
 @Controller       // Controller로 사용되게 해주는 Annotation
 @ResponseBody     // HTML 문서가 아니라 일반 문자열을 반환하게 해 주는 Annotation
 public class UserController {
-//    @PostMapping("/login-check")         // 추가된 메소드
-//    public String loginCheck(@RequestParam("userId") String userId, @RequestParam("password") String password) {
-//        if ( userId.equals("test") && password.equals("test") )
-//            return "true";
-//        else
-//            return "false";
-//    }
-    @PostMapping("/login-check")    // Map 즉 딕셔너리 즉 json으로 반환하는 함수 추가
+    @Autowired
+    DBConnection dbConnection;     // DBConnection 의존성 주입
+
+    @PostMapping("/add-user")      // 사용자를 추가하기 위한 함수 추가
+    public String addUser(@RequestParam("userId") String userId, @RequestParam("password") String password, @RequestParam("name") String name) {
+        PreparedStatement pstmt;
+
+        try {
+            Connection connection = dbConnection.getConnection();
+
+            String sql = "INSERT INTO flutter_user (id, password, name) VALUES (?, ?, ?)";
+            pstmt = connection.prepareStatement(sql);
+
+            pstmt.setString(1, userId);
+            pstmt.setString(2, password);
+            pstmt.setString(3, name);
+
+            int rowsInserted = pstmt.executeUpdate();
+            if (rowsInserted > 0) {
+                System.out.println("사용자 데이터가 성공적으로 추가되었습니다.");
+                return "success";
+            } else {
+                System.out.println("사용자 데이터 추가시 오류가 발생하였습니다.");
+                return "failure";
+            }
+        } catch (SQLException | ClassNotFoundException e) {
+            System.out.println("사용자 데이터 추가시 DBMS 오류가 발생하였습니다.");
+            return "failure";
+        }
+    }
+
+    // ID와 Password가 일치하는 사용자가 있는지 확인하는 함수 추가
+    private boolean matchedUser(String userId, String password) {
+        PreparedStatement pstmt;
+
+        try {
+            Connection connection = dbConnection.getConnection();
+
+            // 사실상 SQL 문장 하나만 차이나는 것과 같음 (INSERT 문장이 SELECT 문장으로 변경됨)
+            String sql = "SELECT * FROM flutter_user WHERE id = ? AND password = ?";
+            pstmt = connection.prepareStatement(sql);
+
+            pstmt.setString(1, userId);
+            pstmt.setString(2, password);
+
+            int rowsSelected = pstmt.executeUpdate();
+            if (rowsSelected > 0) {
+                System.out.println("사용자의 ID와 Password가 일치합니다.");
+                return true;
+            } else {
+                System.out.println("ID가 존재하지 않거나 Password가 일치하지 않습니다.");
+                return false;
+            }
+        } catch (SQLException | ClassNotFoundException e) {
+            System.out.println("사용자 데이터 조회시 DBMS 오류가 발생하였습니다.");
+            return false;
+        }
+    }
+
+    @PostMapping("/login-check")
     public Map<String, Boolean> loginCheck(@RequestParam("userId") String userId, @RequestParam("password") String password) {
-        boolean loginSuccess = userId.equals("test") && password.equals("test");
+        //boolean loginSuccess = userId.equals("test") && password.equals("test");
+        boolean loginSuccess = matchedUser(userId, password);     // DBMS의 데이터를 사용하도록 수정
 
         Map<String, Boolean> response = new HashMap<>();
         response.put("loginSuccess", loginSuccess);
